@@ -1,18 +1,12 @@
-"""
-gui.py - Цонх, товчлуур, оролтын талбар (Гишүүн 4-ийн ажил)
-
-Ажиллуулах:
-    python src/gui.py        (Windows)
-    python3 src/gui.py       (Linux. Хэрэв tkinter алдаа гарвал: sudo apt install python3-tk)
-
-Зургийг gui_canvas.py-ийн draw_memory() зурна (Гишүүн 3). Энд зөвхөн цонх,
-товчлуур, оролтыг хийж, allocator-ийг дуудаад дараа нь зургийг шинэчилнэ.
-"""
 import tkinter as tk
 from tkinter import messagebox
 
 from allocator import Allocator
 from gui_canvas import draw_memory
+
+COLOR_OK = "#0b6b0b"       # амжилттай мессеж (ногоон)
+COLOR_ERROR = "red"        # алдааны мессеж (улаан)
+COLOR_INFO = "blue"        # мэдээллийн мессеж (цэнхэр)
 
 
 class App:
@@ -24,29 +18,92 @@ class App:
 
     def build_widgets(self):
         """Цонхны бүх хэсгийг үүсгэнэ."""
-        # --- 1. Санах ойн хэмжээ оруулах мөр (бэлэн) ---
+        # --- 1. Санах ойн хэмжээ оруулах мөр ---
         top = tk.Frame(self.root)
         top.pack(fill="x", padx=10, pady=5)
         tk.Label(top, text="Санах ойн хэмжээ:").pack(side="left")
         self.size_entry = tk.Entry(top, width=12)
         self.size_entry.insert(0, "1000")
         self.size_entry.pack(side="left", padx=5)
+        self.size_entry.bind("<Return>", lambda event: self.on_start())
         tk.Button(top, text="Эхлүүлэх / Reset", command=self.on_start).pack(side="left")
 
-        # --- 2. Зураг (бэлэн) ---
+        # --- 2. Зураг ---
         self.canvas = tk.Canvas(self.root, width=800, height=150, bg="white")
         self.canvas.pack(padx=10, pady=5)
 
-        # --- 3. Мессеж харуулах мөр (бэлэн) ---
+        # --- 3. Мессеж харуулах мөр ---
         self.message_var = tk.StringVar()
-        tk.Label(self.root, textvariable=self.message_var, fg="blue").pack(pady=2)
+        self.message_label = tk.Label(self.root, textvariable=self.message_var, fg=COLOR_INFO)
+        self.message_label.pack(pady=2)
 
-        # TODO 1: Хүсэлтийн мөр: процессын нэр (Entry), хэмжээ (Entry),
-        #         стратеги (F/B/W - Radiobutton эсвэл OptionMenu), "RQ" товч -> self.on_request
-        # TODO 2: Чөлөөлөх мөр: процессын нэр (Entry), "RL" товч -> self.on_release
-        # TODO 3: "C (Compaction)" товч -> self.on_compact
-        # TODO 4: Статистик харуулах Label (нийт, ашигласан, чөлөөт, hole-ын тоо,
-        #         хамгийн том hole, fragmentation %) -> self.refresh() дотор шинэчилнэ
+        # --- 4. Хүсэлтийн мөр (RQ) ---
+        request_frame = tk.LabelFrame(self.root, text="Санах ой хүсэх (RQ)")
+        request_frame.pack(fill="x", padx=10, pady=5)
+
+        tk.Label(request_frame, text="Процессын нэр:").pack(side="left", padx=(5, 0))
+        self.rq_name_entry = tk.Entry(request_frame, width=10)
+        self.rq_name_entry.pack(side="left", padx=5)
+
+        tk.Label(request_frame, text="Хэмжээ:").pack(side="left")
+        self.rq_size_entry = tk.Entry(request_frame, width=10)
+        self.rq_size_entry.pack(side="left", padx=5)
+
+        tk.Label(request_frame, text="Стратеги:").pack(side="left")
+        self.strategy_var = tk.StringVar(value="F")
+        for code, title in (("F", "F (First)"), ("B", "B (Best)"), ("W", "W (Worst)")):
+            tk.Radiobutton(request_frame, text=title, variable=self.strategy_var,
+                           value=code).pack(side="left")
+
+        tk.Button(request_frame, text="RQ", width=6,
+                  command=self.on_request).pack(side="left", padx=10, pady=3)
+
+        # Enter дарахад RQ ажиллана
+        self.rq_name_entry.bind("<Return>", lambda event: self.on_request())
+        self.rq_size_entry.bind("<Return>", lambda event: self.on_request())
+
+        # --- 5. Чөлөөлөх мөр (RL) ---
+        release_frame = tk.LabelFrame(self.root, text="Санах ой чөлөөлөх (RL)")
+        release_frame.pack(fill="x", padx=10, pady=5)
+
+        tk.Label(release_frame, text="Процессын нэр:").pack(side="left", padx=(5, 0))
+        self.rl_name_entry = tk.Entry(release_frame, width=10)
+        self.rl_name_entry.pack(side="left", padx=5)
+        tk.Button(release_frame, text="RL", width=6,
+                  command=self.on_release).pack(side="left", padx=10, pady=3)
+        self.rl_name_entry.bind("<Return>", lambda event: self.on_release())
+
+        # --- 6. Compaction товч ---
+        tk.Button(self.root, text="C (Compaction)",
+                  command=self.on_compact).pack(pady=5)
+
+        # --- 7. Статистик ---
+        stats_frame = tk.LabelFrame(self.root, text="Статистик")
+        stats_frame.pack(fill="x", padx=10, pady=5)
+        self.stats_var = tk.StringVar()
+        tk.Label(stats_frame, textvariable=self.stats_var, justify="left",
+                 anchor="w").pack(fill="x", padx=5, pady=3)
+        self.stats_var.set("Санах ойг эхлүүлээгүй байна")
+
+    # ------------------------------------------------------------
+    # Туслах функцүүд
+    # ------------------------------------------------------------
+
+    def show_message(self, message, ok=True):
+        """Мессежийг харуулна: амжилттай бол ногоон, алдаа бол улаан."""
+        self.message_label.config(fg=COLOR_OK if ok else COLOR_ERROR)
+        self.message_var.set(message)
+
+    def check_started(self):
+        """Allocator эхэлсэн эсэхийг шалгана. Эхлээгүй бол алдаа үзүүлж False буцаана."""
+        if self.allocator is None:
+            messagebox.showerror("Алдаа", "Эхлээд санах ойн хэмжээг оруулж 'Эхлүүлэх / Reset' дарна уу")
+            return False
+        return True
+
+    # ------------------------------------------------------------
+    # Товчнуудын үйлдэл
+    # ------------------------------------------------------------
 
     def on_start(self):
         """Санах ойг эхлүүлэх эсвэл reset хийх."""
@@ -56,28 +113,65 @@ class App:
         except ValueError:
             messagebox.showerror("Алдаа", "Санах ойн хэмжээ 0-ээс их бүхэл тоо байх ёстой")
             return
-        self.message_var.set("Санах ой " + str(size) + " нэгжээр эхэллээ")
+        self.show_message("Санах ой " + str(size) + " нэгжээр эхэллээ", True)
         self.refresh()
 
     def on_request(self):
-        """RQ товч дарахад. TODO: оролтыг уншиж, allocator.request() дуудаад,
-        мессеж харуулж, self.refresh() дуудна. Allocator эхлээгүй бол алдаа үзүүлнэ."""
-        pass
+        """RQ товч дарахад: оролтыг уншиж, allocator.request() дуудаад зургийг шинэчилнэ."""
+        if not self.check_started():
+            return
+        name = self.rq_name_entry.get().strip()
+        try:
+            size = int(self.rq_size_entry.get())
+        except ValueError:
+            self.show_message("Алдаа: хэмжээ бүхэл тоо байх ёстой", False)
+            return
+        strategy = self.strategy_var.get()
+        ok, message = self.allocator.request(name, size, strategy)
+        self.show_message(message, ok)
+        self.refresh()
+        if ok:
+            self.rq_name_entry.delete(0, tk.END)      # дараагийн хүсэлтэд бэлдэнэ
+            self.rq_size_entry.delete(0, tk.END)
+            self.rq_name_entry.focus_set()
 
     def on_release(self):
-        """RL товч дарахад. TODO: allocator.release() дуудна."""
-        pass
+        """RL товч дарахад: allocator.release() дуудна."""
+        if not self.check_started():
+            return
+        name = self.rl_name_entry.get().strip()
+        if name == "":
+            self.show_message("Алдаа: процессын нэр хоосон байна", False)
+            return
+        ok, message = self.allocator.release(name)
+        self.show_message(message, ok)
+        self.refresh()
+        if ok:
+            self.rl_name_entry.delete(0, tk.END)
 
     def on_compact(self):
-        """C товч дарахад. TODO: allocator.compact() дуудна."""
-        pass
+        """C товч дарахад: allocator.compact() дуудна."""
+        if not self.check_started():
+            return
+        ok, message = self.allocator.compact()
+        self.show_message(message, ok)
+        self.refresh()
 
     def refresh(self):
         """Зураг болон статистикийг шинэчилнэ. Allocator-ийн ямар ч өөрчлөлтийн дараа дуудна."""
         if self.allocator is None:
             return
         draw_memory(self.canvas, self.allocator.get_blocks(), self.allocator.max_size)
-        # TODO: статистикийн Label-ийг self.allocator.get_stats()-ээр шинэчилнэ
+        stats = self.allocator.get_stats()
+        self.stats_var.set(
+            "Нийт: " + str(stats["total"])
+            + "   Ашигласан: " + str(stats["used"])
+            + "   Чөлөөт: " + str(stats["free"])
+            + "   Процессын тоо: " + str(stats["process_count"]) + "\n"
+            + "Hole-ын тоо: " + str(stats["hole_count"])
+            + "   Хамгийн том hole: " + str(stats["largest_hole"])
+            + "   Гадаад fragmentation: " + format(stats["external_fragmentation"], ".1f") + "%"
+        )
 
 
 def main():
