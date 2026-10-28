@@ -91,6 +91,29 @@ class TestAllocator(unittest.TestCase):
         a.request("A", 10, "F")
         self.assertFalse(a.request("A", 10, "F")[0])      # давхар нэр
 
+    def test_name_with_space_rejected(self):
+        a = Allocator(1000)
+        ok, msg = a.request("P 1", 10, "F")
+        self.assertFalse(ok)
+
+    def test_book_compaction_example(self):
+        """Номын жишээ: 550, 375, 1900, 4500 KB-ийн дөрвөн hole -> 7325 KB нэг hole"""
+        a = Allocator(7625)                    # 7325 (hole) + 3 x 100 (тусгаарлагч процесс) 
+        a.request("H1", 550, "F")
+        a.request("A", 100, "F")
+        a.request("H2", 375, "F")
+        a.request("B", 100, "F")
+        a.request("H3", 1900, "F")
+        a.request("C", 100, "F")
+        a.request("H4", 4500, "F")
+        for name in ("H1", "H2", "H3", "H4"):
+            a.release(name)
+        self.assertEqual(a.get_stats()["hole_count"], 4)
+        a.compact()
+        stats = a.get_stats()
+        self.assertEqual(stats["hole_count"], 1)
+        self.assertEqual(stats["largest_hole"], 7325)
+
     def test_not_enough_memory(self):
         a = Allocator(100)
         ok, msg = a.request("A", 101, "F")
