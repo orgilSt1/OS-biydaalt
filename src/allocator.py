@@ -63,6 +63,8 @@ class Allocator:
         # 1. Оролтыг шалгах
         if name is None or str(name).strip() == "":
             return False, "Алдаа: процессын нэр хоосон байна"
+        if any(ch.isspace() for ch in str(name)):
+            return False, "Алдаа: процессын нэрэнд зай байж болохгүй"
         if not isinstance(size, int) or size <= 0:
             return False, "Алдаа: хэмжээ 0-ээс их бүхэл тоо байх ёстой"
         strategy = str(strategy).upper()
