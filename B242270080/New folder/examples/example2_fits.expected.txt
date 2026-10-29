@@ -1,0 +1,36 @@
+allocator> RQ A 200 F
+A-д [0:199] олгов
+allocator> RQ P 50 F
+P-д [200:249] олгов
+allocator> RQ B 80 F
+B-д [250:329] олгов
+allocator> RQ Q 50 F
+Q-д [330:379] олгов
+allocator> RL A
+A-ийн санах ойг чөлөөллөө (200 byte)
+allocator> RL B
+B-ийн санах ойг чөлөөллөө (80 byte)
+allocator> STAT
+Addresses [0:199] Unused
+Addresses [200:249] Process P
+Addresses [250:329] Unused
+Addresses [330:379] Process Q
+Addresses [380:999] Unused
+allocator> RQ X 70 F
+X-д [0:69] олгов
+allocator> RL X
+X-ийн санах ойг чөлөөллөө (70 byte)
+allocator> RQ Y 70 B
+Y-д [250:319] олгов
+allocator> RL Y
+Y-ийн санах ойг чөлөөллөө (70 byte)
+allocator> RQ Z 70 W
+Z-д [380:449] олгов
+allocator> STAT
+Addresses [0:199] Unused
+Addresses [200:249] Process P
+Addresses [250:329] Unused
+Addresses [330:379] Process Q
+Addresses [380:449] Process Z
+Addresses [450:999] Unused
+allocator> X
