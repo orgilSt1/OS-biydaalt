@@ -21,7 +21,7 @@ class App:
         # --- 1. Санах ойн хэмжээ оруулах мөр ---
         top = tk.Frame(self.root)
         top.pack(fill="x", padx=10, pady=5)
-        tk.Label(top, text="Санах ойн хэмжээ:").pack(side="left")
+        tk.Label(top, text="Санах ойн хэмжээ (byte):").pack(side="left")
         self.size_entry = tk.Entry(top, width=12)
         self.size_entry.insert(0, "1000")
         self.size_entry.pack(side="left", padx=5)
@@ -34,7 +34,8 @@ class App:
 
         # --- 3. Мессеж харуулах мөр ---
         self.message_var = tk.StringVar()
-        self.message_label = tk.Label(self.root, textvariable=self.message_var, fg=COLOR_INFO)
+        self.message_label = tk.Label(self.root, textvariable=self.message_var,
+                                      fg=COLOR_INFO, wraplength=780)
         self.message_label.pack(pady=2)
 
         # --- 4. Хүсэлтийн мөр (RQ) ---
@@ -45,7 +46,7 @@ class App:
         self.rq_name_entry = tk.Entry(request_frame, width=10)
         self.rq_name_entry.pack(side="left", padx=5)
 
-        tk.Label(request_frame, text="Хэмжээ:").pack(side="left")
+        tk.Label(request_frame, text="Хэмжээ (byte):").pack(side="left")
         self.rq_size_entry = tk.Entry(request_frame, width=10)
         self.rq_size_entry.pack(side="left", padx=5)
 
@@ -113,7 +114,7 @@ class App:
         except ValueError:
             messagebox.showerror("Алдаа", "Санах ойн хэмжээ 0-ээс их бүхэл тоо байх ёстой")
             return
-        self.show_message("Санах ой " + str(size) + " нэгжээр эхэллээ", True)
+        self.show_message("Санах ой " + str(size) + " byte-аар эхэллээ", True)
         self.refresh()
 
     def on_request(self):
@@ -164,12 +165,12 @@ class App:
         draw_memory(self.canvas, self.allocator.get_blocks(), self.allocator.max_size)
         stats = self.allocator.get_stats()
         self.stats_var.set(
-            "Нийт: " + str(stats["total"])
-            + "   Ашигласан: " + str(stats["used"])
-            + "   Чөлөөт: " + str(stats["free"])
+            "Нийт: " + str(stats["total"]) + " byte"
+            + "   Ашигласан: " + str(stats["used"]) + " byte"
+            + "   Чөлөөт: " + str(stats["free"]) + " byte"
             + "   Процессын тоо: " + str(stats["process_count"]) + "\n"
             + "Hole-ын тоо: " + str(stats["hole_count"])
-            + "   Хамгийн том hole: " + str(stats["largest_hole"])
+            + "   Хамгийн том hole: " + str(stats["largest_hole"]) + " byte"
             + "   Гадаад fragmentation: " + format(stats["external_fragmentation"], ".1f") + "%"
         )
 
