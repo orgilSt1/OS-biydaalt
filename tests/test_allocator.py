@@ -127,7 +127,110 @@ class TestAllocator(unittest.TestCase):
         ok, msg = a.request("BIG", 700, "F")
         self.assertTrue(ok)
 
-    # TODO (Гишүүн 5): энд өөрийн тестүүдийг нэмнэ (docs/TASKS.md-г үз)
+    def test_exact_size_request(self):
+        """Hole-той яг тэнцүү хэмжээтэй хүсэлт: үлдэгдэл hole үүсэхгүй"""
+        a = make_allocator()
+        ok, msg = a.request("X", 200, "F")       # анхны hole яг 200
+        self.assertTrue(ok)
+        self.assertEqual(start_of(a, "X"), 0)
+        self.assertEqual(a.get_stats()["hole_count"], 2)
+
+    def test_fill_whole_memory_then_fail(self):
+        a = Allocator(100)
+        self.assertTrue(a.request("A", 100, "F")[0])
+        self.assertFalse(a.request("B", 1, "F")[0])
+        self.assertEqual(a.get_stats()["free"], 0)
+
+    def test_release_merges_with_left_hole(self):
+        a = Allocator(1000)
+        a.request("A", 100, "F")
+        a.request("B", 100, "F")
+        a.request("C", 100, "F")
+        a.release("A")
+        a.release("B")                           # A-ийн hole-той нэгдэнэ
+        blocks = a.get_blocks()
+        self.assertEqual(len(blocks), 3)         # [hole 200] [C] [hole 700]
+        self.assertEqual(blocks[0].size, 200)
+
+    def test_release_merges_with_right_hole(self):
+        a = Allocator(1000)
+        a.request("A", 100, "F")
+        a.request("B", 100, "F")
+        a.request("C", 100, "F")
+        a.release("C")                           # төгсгөлийн том hole-той нэгдэнэ
+        blocks = a.get_blocks()
+        self.assertEqual(len(blocks), 3)         # [A] [B] [hole 800]
+        self.assertEqual(blocks[2].size, 800)
+
+    def test_best_fit_tie_takes_first(self):
+        """Тэнцүү хэмжээтэй hole олон байвал хаягаар хамгийн эхнийх"""
+        a = Allocator(1000)
+        a.request("A", 100, "F")
+        a.request("P", 50, "F")
+        a.request("B", 100, "F")
+        a.request("Q", 50, "F")
+        a.release("A")
+        a.release("B")                           # hole 100 @0 ба hole 100 @150
+        a.request("X", 100, "B")
+        self.assertEqual(start_of(a, "X"), 0)
+
+    def test_compact_keeps_process_order(self):
+        a = Allocator(1000)
+        for name in ("A", "B", "C", "D"):
+            a.request(name, 100, "F")
+        a.release("B")
+        a.compact()
+        self.assertEqual(start_of(a, "A"), 0)
+        self.assertEqual(start_of(a, "C"), 100)
+        self.assertEqual(start_of(a, "D"), 200)
+
+    def test_compact_not_needed(self):
+        a = Allocator(100)
+        a.request("A", 100, "F")                 # hole байхгүй
+        ok, msg = a.compact()
+        self.assertTrue(ok)
+        self.assertIn("хэрэггүй", msg)
+        b = Allocator(100)
+        b.request("A", 50, "F")                  # нэг hole төгсгөлд
+        ok, msg = b.compact()
+        self.assertIn("хэрэггүй", msg)
+
+    def test_invalid_memory_size(self):
+        for bad in (0, -5, "abc", 10.5):
+            with self.assertRaises(ValueError):
+                Allocator(bad)
+
+    def test_empty_process_name(self):
+        a = Allocator(100)
+        self.assertFalse(a.request("", 10, "F")[0])
+        self.assertFalse(a.request("   ", 10, "F")[0])
+
+    def test_reset(self):
+        a = make_allocator()
+        a.reset()
+        blocks = a.get_blocks()
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].size, 1000)
+        a.reset(2000)
+        self.assertEqual(a.max_size, 2000)
+        self.assertEqual(a.get_blocks()[0].size, 2000)
+
+    def test_stats(self):
+        a = make_allocator()                     # hole 200, 80, 620 / процесс P 50, Q 50
+        stats = a.get_stats()
+        self.assertEqual(stats["total"], 1000)
+        self.assertEqual(stats["used"], 100)
+        self.assertEqual(stats["free"], 900)
+        self.assertEqual(stats["hole_count"], 3)
+        self.assertEqual(stats["process_count"], 2)
+        self.assertEqual(stats["largest_hole"], 620)
+        self.assertAlmostEqual(stats["external_fragmentation"], 280 * 100.0 / 900)
+
+    def test_get_blocks_returns_copy(self):
+        a = Allocator(100)
+        blocks = a.get_blocks()
+        blocks[0].owner = "HACK"
+        self.assertIsNone(a.get_blocks()[0].owner)
 
 
 if __name__ == "__main__":

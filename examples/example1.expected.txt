@@ -1,0 +1,33 @@
+allocator> RQ P1 200 F
+P1-д [0:199] олгов
+allocator> RQ P2 300 F
+P2-д [200:499] олгов
+allocator> RQ P3 100 F
+P3-д [500:599] олгов
+allocator> STAT
+Addresses [0:199] Process P1
+Addresses [200:499] Process P2
+Addresses [500:599] Process P3
+Addresses [600:999] Unused
+allocator> RL P1
+P1-ийн санах ойг чөлөөллөө (200 byte)
+allocator> RL P3
+P3-ийн санах ойг чөлөөллөө (100 byte)
+allocator> STAT
+Addresses [0:199] Unused
+Addresses [200:499] Process P2
+Addresses [500:999] Unused
+allocator> RQ P4 250 B
+P4-д [500:749] олгов
+allocator> STAT
+Addresses [0:199] Unused
+Addresses [200:499] Process P2
+Addresses [500:749] Process P4
+Addresses [750:999] Unused
+allocator> C
+Compaction хийгдлээ: 2 hole нэг болов, чөлөөт зай 450 byte
+allocator> STAT
+Addresses [0:299] Process P2
+Addresses [300:549] Process P4
+Addresses [550:999] Unused
+allocator> X
