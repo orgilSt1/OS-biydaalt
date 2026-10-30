@@ -1,0 +1,33 @@
+allocator> RQ A 300 F
+A-д [0:299] олгов
+allocator> RQ B 100 F
+B-д [300:399] олгов
+allocator> RQ C 300 F
+C-д [400:699] олгов
+allocator> RQ D 100 F
+D-д [700:799] олгов
+allocator> RL B
+B-ийн санах ойг чөлөөллөө (100 byte)
+allocator> RL D
+D-ийн санах ойг чөлөөллөө (100 byte)
+allocator> STAT
+Addresses [0:299] Process A
+Addresses [300:399] Unused
+Addresses [400:699] Process C
+Addresses [700:999] Unused
+allocator> RQ E 350 F
+Алдаа: нийт чөлөөт зай 400 byte байгаа ч нэг hole дотор багтахгүй байна (fragmentation). Compaction (C) хийж үзнэ үү
+allocator> C
+Compaction хийгдлээ: 2 hole нэг болов, чөлөөт зай 400 byte
+allocator> STAT
+Addresses [0:299] Process A
+Addresses [300:599] Process C
+Addresses [600:999] Unused
+allocator> RQ E 350 F
+E-д [600:949] олгов
+allocator> STAT
+Addresses [0:299] Process A
+Addresses [300:599] Process C
+Addresses [600:949] Process E
+Addresses [950:999] Unused
+allocator> X
