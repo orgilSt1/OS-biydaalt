@@ -1,0 +1,7 @@
+RQ P1 1_0 F
+RQ P1 1e3 F
+RQ P1 10.5 F
+RQ P1 +5 F
+RQ P2 -5 F
+STAT
+X

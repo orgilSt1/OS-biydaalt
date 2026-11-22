@@ -110,6 +110,32 @@ class TestStatFormat(unittest.TestCase):
         self.assertEqual(len(lines), 2)
 
 
+class TestStrictNumbers(unittest.TestCase):
+    """R-2: int()-ийн сул талыг (1_0, арабын цифр) CLI-д хаасан."""
+
+    def test_underscore_size_rejected(self):
+        a = Allocator(1000)
+        text, _ = handle_command(a, "RQ P1 1_0 F")
+        self.assertIn("Алдаа", text)
+        self.assertEqual(a.get_stats()["process_count"], 0)
+
+    def test_non_ascii_digit_rejected(self):
+        a = Allocator(1000)
+        text, _ = handle_command(a, "RQ P1 \u0663 F")
+        self.assertIn("Алдаа", text)
+        self.assertEqual(a.get_stats()["process_count"], 0)
+
+    def test_negative_and_zero_still_have_range_message(self):
+        a = Allocator(1000)
+        for bad in ("-5", "0"):
+            text, _ = handle_command(a, "RQ P1 " + bad + " F")
+            self.assertIn("0-ээс их", text)
+
+    def test_memory_size_argument_strict(self):
+        for bad in ("1_000", "1e3", "10.5"):
+            self.assertIn("Алдаа", run_cli([bad]), bad)
+
+
 class TestProgram(unittest.TestCase):
     """cli.py-г бүтнээр нь (процесс болгон) ажиллуулах тест."""
 
@@ -124,7 +150,8 @@ class TestProgram(unittest.TestCase):
 
     def test_examples_match_expected_output(self):
         """examples/*.txt бүрийг ажиллуулж, *.expected.txt-тэй харьцуулна."""
-        names = ["example1", "example2_fits", "example3_compaction", "example4_errors"]
+        names = ["example1", "example2_fits", "example3_compaction", "example4_errors",
+                 "example5_strict_input"]
         for name in names:
             with open(os.path.join(EXAMPLES, name + ".txt"), encoding="utf-8") as f:
                 commands = f.read()

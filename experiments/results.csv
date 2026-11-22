@@ -1,0 +1,7 @@
+strategy,compaction,requests,final_fail_pct,first_try_fragmentation_fail_pct,first_try_no_memory_fail_pct,avg_external_frag_pct,avg_hole_count,avg_utilization_pct,compactions_per_run,moved_kb_per_compaction
+First-fit,үгүй,2000.0,0.21,0.21,0.0,60.04,24.89,68.41,0.0,0.0
+First-fit,тийм,2000.0,0.0,0.14,0.0,59.0,24.3,68.66,2.8,68.22
+Best-fit,үгүй,2000.0,0.09,0.09,0.0,55.89,25.31,68.56,0.0,0.0
+Best-fit,тийм,2000.0,0.0,0.06,0.0,55.75,25.01,68.66,1.2,50.12
+Worst-fit,үгүй,2000.0,2.81,2.81,0.0,88.83,22.52,65.14,0.0,0.0
+Worst-fit,тийм,2000.0,0.0,1.45,0.0,76.34,16.42,68.66,28.9,70.55
