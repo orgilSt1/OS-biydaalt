@@ -1,0 +1,14 @@
+allocator> RQ P1 1_0 F
+Алдаа: хэмжээ бүхэл тоо байх ёстой (оруулсан: 1_0)
+allocator> RQ P1 1e3 F
+Алдаа: хэмжээ бүхэл тоо байх ёстой (оруулсан: 1e3)
+allocator> RQ P1 10.5 F
+Алдаа: хэмжээ бүхэл тоо байх ёстой (оруулсан: 10.5)
+allocator> RQ P1 +5 F
+P1-д [0:4] олгов
+allocator> RQ P2 -5 F
+Алдаа: хэмжээ 0-ээс их бүхэл тоо байх ёстой
+allocator> STAT
+Addresses [0:4] Process P1
+Addresses [5:999] Unused
+allocator> X

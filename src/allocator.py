@@ -12,13 +12,28 @@ allocator.py - Санах ой хуваарилагчийн СУУРЬ (цөм)
   - size  : хэмжээ
   - owner : процессын нэр (жишээ "P1"). Хоосон хэсэг (hole) бол None
 
-Жишээ (1000 нэгж санах ой):
+Жишээ (1000 byte санах ой):
   [Block(0, 200, "P1"), Block(200, 300, None), Block(500, 500, "P2")]
    => 0-199 нь P1, 200-499 хоосон, 500-999 нь P2
 """
 
+import re
+
 # Зөвшөөрөгдсөн стратегиуд: F = First-fit, B = Best-fit, W = Worst-fit
 STRATEGIES = ("F", "B", "W")
+
+# Зөвхөн ASCII цифр (+/- тэмдэгтэй байж болно). Python-ы int() нь "1_0", "٣" гэх мэтийг
+# чимээгүй хүлээн авдаг тул хэрэглэгчийн оролтыг өөрсдөө илүү хатуу шалгана.
+_INT_PATTERN = re.compile(r"[+-]?[0-9]+")
+
+
+def parse_int(text):
+    """Хэрэглэгчийн оруулсан текстийг бүхэл тоо болгоно. Буруу бол ValueError.
+    "1_0", "1e3", "٣", "1.5", "" зэргийг ЗӨВШӨӨРӨХГҮЙ."""
+    text = str(text).strip()
+    if _INT_PATTERN.fullmatch(text) is None:
+        raise ValueError("бүхэл тоо биш: " + text)
+    return int(text)
 
 
 class Block:
@@ -47,7 +62,7 @@ class Allocator:
 
     def __init__(self, max_size):
         """max_size хэмжээтэй санах ой үүсгэнэ. Эхэндээ бүтэн нэг hole."""
-        if not isinstance(max_size, int) or max_size <= 0:
+        if isinstance(max_size, bool) or not isinstance(max_size, int) or max_size <= 0:
             raise ValueError("Санах ойн хэмжээ 0-ээс их бүхэл тоо байх ёстой")
         self.max_size = max_size
         self.blocks = [Block(0, max_size, None)]
@@ -65,7 +80,7 @@ class Allocator:
             return False, "Алдаа: процессын нэр хоосон байна"
         if any(ch.isspace() for ch in str(name)):
             return False, "Алдаа: процессын нэрэнд зай байж болохгүй"
-        if not isinstance(size, int) or size <= 0:
+        if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
             return False, "Алдаа: хэмжээ 0-ээс их бүхэл тоо байх ёстой"
         strategy = str(strategy).upper()
         if strategy not in STRATEGIES:
@@ -80,7 +95,8 @@ class Allocator:
             if free >= size:
                 return False, ("Алдаа: нийт чөлөөт зай " + str(free) + " byte байгаа ч нэг hole дотор "
                                "багтахгүй байна (fragmentation). Compaction (C) хийж үзнэ үү")
-            return False, "Алдаа: санах ой хүрэлцэхгүй (чөлөөт " + str(free) + " byte, хүссэн " + str(size) + " byte)"
+            return False, ("Алдаа: санах ой хүрэлцэхгүй (чөлөөт " + str(free) + " byte, хүссэн "
+                           + str(size) + " byte)")
 
         # 3. Hole-ыг хуваана
         hole = self.blocks[index]
@@ -136,10 +152,37 @@ class Allocator:
         max_size өгвөл шинэ хэмжээтэй болгоно."""
         if max_size is None:
             max_size = self.max_size
-        if not isinstance(max_size, int) or max_size <= 0:
+        if isinstance(max_size, bool) or not isinstance(max_size, int) or max_size <= 0:
             raise ValueError("Санах ойн хэмжээ 0-ээс их бүхэл тоо байх ёстой")
         self.max_size = max_size
         self.blocks = [Block(0, max_size, None)]
+
+    def snapshot(self):
+        """Одоогийн төлвийн хуулбарыг буцаана (GUI-ийн Undo ашиглана). Өөрчлөгдөхгүй tuple."""
+        return (self.max_size,
+                tuple((b.start, b.size, b.owner) for b in self.blocks))
+
+    def restore(self, snap):
+        """snapshot()-оор авсан төлөвийг сэргээнэ."""
+        max_size, items = snap
+        self.max_size = max_size
+        self.blocks = [Block(start, size, owner) for (start, size, owner) in items]
+
+    def preview(self, size):
+        """size хэмжээтэй хүсэлтийг F, B, W стратеги тус бүр ХААНА олгохыг төлөв ӨӨРЧЛӨХГҮЙ харуулна.
+        Буцаах: {"F": (эхлэх хаяг, hole-ын хэмжээ) эсвэл None, "B": ..., "W": ...}
+        None = тохирох hole байхгүй. size буруу бол бүгд None."""
+        result = {}
+        for strategy in STRATEGIES:
+            if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+                result[strategy] = None
+                continue
+            index = self._choose_hole(size, strategy)
+            if index == -1:
+                result[strategy] = None
+            else:
+                result[strategy] = (self.blocks[index].start, self.blocks[index].size)
+        return result
 
     # ------------------------------------------------------------
     # МЭДЭЭЛЭЛ АВАХ ФУНКЦҮҮД (cli.py, gui.py эдгээрийг ашиглана)

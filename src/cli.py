@@ -16,7 +16,7 @@ cli.py - Командын мөрийн интерфейс
     python src/cli.py 1000 < examples/example1.txt
 """
 import sys
-from allocator import Allocator
+from allocator import Allocator, parse_int
  
 PROMPT = "allocator> "
 COMMANDS_HELP = "Боломжит командууд: RQ <нэр> <хэмжээ> <F|B|W>, RL <нэр>, C, STAT, X"
@@ -54,7 +54,7 @@ def handle_command(allocator, line):
         if len(parts) != 4:
             return "Хэрэглээ: RQ <нэр> <хэмжээ> <F|B|W>", False
         try:
-            size = int(parts[2])
+            size = parse_int(parts[2])
         except ValueError:
             return "Алдаа: хэмжээ бүхэл тоо байх ёстой (оруулсан: " + parts[2] + ")", False
         ok, message = allocator.request(parts[1], size, parts[3])
@@ -103,7 +103,7 @@ def main():
         print("Хэрэглээ: python src/cli.py <санах ойн хэмжээ (byte)>")
         return
     try:
-        max_size = int(sys.argv[1])
+        max_size = parse_int(sys.argv[1])
         allocator = Allocator(max_size)
     except ValueError:
         print("Алдаа: санах ойн хэмжээ 0-ээс их бүхэл тоо байх ёстой")
