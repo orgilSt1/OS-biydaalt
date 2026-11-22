@@ -78,9 +78,9 @@ class Allocator:
         if index == -1:
             free = self.total_free()
             if free >= size:
-                return False, ("Алдаа: нийт чөлөөт зай " + str(free) + " байгаа ч нэг hole дотор "
+                return False, ("Алдаа: нийт чөлөөт зай " + str(free) + " byte байгаа ч нэг hole дотор "
                                "багтахгүй байна (fragmentation). Compaction (C) хийж үзнэ үү")
-            return False, "Алдаа: санах ой хүрэлцэхгүй (чөлөөт " + str(free) + ", хүссэн " + str(size) + ")"
+            return False, "Алдаа: санах ой хүрэлцэхгүй (чөлөөт " + str(free) + " byte, хүссэн " + str(size) + " byte)"
 
         # 3. Hole-ыг хуваана
         hole = self.blocks[index]
@@ -104,7 +104,7 @@ class Allocator:
         freed = block.size
         block.owner = None
         self._merge_holes()
-        return True, str(name) + "-ийн санах ойг чөлөөллөө (" + str(freed) + " нэгж)"
+        return True, str(name) + "-ийн санах ойг чөлөөллөө (" + str(freed) + " byte)"
 
     def compact(self):
         """Бүх процессыг эхлэл рүү шахаж, hole-уудыг төгсгөлд нэг болгоно."""
@@ -129,7 +129,7 @@ class Allocator:
             processes.append(Block(position, self.max_size - position, None))
         self.blocks = processes
         return True, ("Compaction хийгдлээ: " + str(hole_count) + " hole нэг болов, "
-                      "чөлөөт зай " + str(self.max_size - position))
+                      "чөлөөт зай " + str(self.max_size - position) + " byte")
 
     def reset(self, max_size=None):
         """Санах ойг эхний байдалд оруулна (GUI-ийн Reset товчинд).
